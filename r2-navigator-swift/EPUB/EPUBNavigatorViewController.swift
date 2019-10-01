@@ -13,7 +13,7 @@ import UIKit
 import R2Shared
 import WebKit
 import SafariServices
-
+import CommonCrypto
 
 public protocol EPUBNavigatorDelegate: VisualNavigatorDelegate {
     
@@ -128,6 +128,8 @@ open class EPUBNavigatorViewController: UIViewController, VisualNavigator, Logga
         paginationView.frame = view.bounds
         paginationView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
         view.addSubview(paginationView)
+        let notification = Notification.Name(rawValue: "pageLoaded")
+        NotificationCenter.default.post(name: notification, object: self, userInfo:nil)
     }
 
     open override func viewWillDisappear(_ animated: Bool) {
@@ -498,6 +500,247 @@ extension EPUBNavigatorViewController {
         let index = publication.readingOrder.firstIndex(withHref: href)
         let moved = go(to: Link(href: href))
         return moved ? index : nil
+    }
+    
+}
+
+extension EPUBNavigatorViewController : HighlightableNavigator {
+    
+    public func rectangleForHighlightWithID(_ id: String, callback: @escaping (CGRect?) -> Void) {
+        executeJavascript("rectangleForHighlightWithID(\'\(id)\')") {
+            result, error in
+            callback(
+                CGRect(
+                    x: result!["left"] as! Double,
+                    y: result!["top"] as! Double,
+                    width: result!["screenWidth"] as! Double,
+                    height: result!["screenHeight"] as! Double
+                )
+            )
+        }
+    }
+    
+    public func rectangleForHighlightAnnotationMarkWithID(_ id: String) -> CGRect? {
+        return nil
+    }
+    
+    public func highlightActivated(_ id: String) {
+        let notification = Notification.Name(rawValue: "highlightActivated")
+        let userInfo = [
+            "id": id
+        ]
+        NotificationCenter.default.post(name: notification, object: self, userInfo:userInfo)
+    }
+    
+    public func highlightAnnotationMarkActivated(_ id: String) {
+        print("annotation tapped")
+        let notification = Notification.Name(rawValue: "annotationActivated")
+        let userInfo = [
+            "id": id
+        ]
+        NotificationCenter.default.post(name: notification, object: self, userInfo:userInfo)
+    }
+    
+    
+    struct Holder {
+        static var _lastHighlightInfo:NSDictionary = [:]
+        static var _highlightList: Array<(String,String)> = Array()
+    }
+    var lastHighlightInfo:NSDictionary {
+        get {
+            return Holder._lastHighlightInfo
+        }
+        set(newValue) {
+            Holder._lastHighlightInfo = newValue
+        }
+    }
+    var highlightList: Array<(String,String)> {
+        get {
+            return Holder._highlightList
+        }
+        set(newValue) {
+            Holder._highlightList = newValue
+        }
+    }
+    
+    
+    public func frameForHighlightWithID(_ id: String, completionHandler: @escaping (String?, Error?) -> Void) {
+        
+        
+        let highlightID = id
+        executeJavascript("getHighlightFrame(\'\(highlightID)\')") {
+            result, error in
+            guard let position =  result as? NSDictionary else {
+                return
+            }
+            
+            
+            let positionInfo = self.convJSON(position)
+            completionHandler(positionInfo, error)
+        }
+    }
+    
+    
+    private func executeJavascript(_ param: String, completionHandler: @escaping (NSDictionary?, Error?) -> Void) {
+        guard let documentWebView = (paginationView.currentView as? EPUBSpreadView) else {
+            return
+        }
+        
+        documentWebView.evaluateScript(param, inResource: "") {
+            result, error in
+            guard let ret =  result as? NSDictionary else {
+                print(error)
+                return
+            }
+            completionHandler(ret, error)
+        }
+    }
+    
+    private func convJSON (_ dictionary: NSDictionary) -> String? {
+        if let jsonData = try? JSONSerialization.data(
+            withJSONObject: dictionary,
+            options: .prettyPrinted) {
+            let theJSONText = String(data:jsonData,encoding:.ascii)!
+            return theJSONText
+        }
+        return nil
+    }
+    
+    public func showAnnotation(_ id: String) {
+        executeJavascript("createAnnotation(\'\(id)\')") {
+            _, _ in
+        }
+    }
+    
+    public func showHighlight(_ highlight: Highlight) {
+        let components = highlight.color?.cgColor.components!;
+        let red = components?[0];
+        let green = components?[1];
+        let blue = components?[2];
+        
+        let colorDic:NSDictionary = [
+            "red" : red,
+            "green" : green,
+            "blue"  : blue
+        ]
+        
+        guard let colorInfo:String = convJSON(colorDic) else {
+            return
+        }
+        
+        executeJavascript("createHighlight(\(highlight.locator), \(colorInfo) ,true)") {
+            result, error in
+            guard let position =  result as? NSDictionary else {
+                print(error)
+                return
+            }
+            
+            print(highlight.style)
+            if !highlight.style.isEmpty {
+                self.showAnnotation(highlight.id)
+            }
+        }
+        return
+    }
+    
+    public func showHighlights(_ highlights: [Highlight]) {
+        return
+    }
+    
+    public func hideHighlightWithID(_ id: String) {
+        return
+    }
+    
+    public func hideAllHighlights() {
+        return
+    }
+    
+    public func frameForHighlightWithID(_ id: String) -> CGRect? {
+        return CGRect(x:0,y:0,width:0,height:0)
+    }
+    
+    public func frameForHighlightAnnotationMarkWithID(_ id: String) -> CGRect? {
+        return CGRect(x:0,y:0,width:0,height:0)
+    }
+    
+    public func currentSelection(completion: @escaping (Locator?) -> Void) {
+        executeJavascript("getCurrentSelectionInfo()") {
+            result, error in
+            guard let resultPos =  result?["locations"] as? NSDictionary else {
+                print(error)
+                return
+            }
+            let resource = self.publication.readingOrder[self.paginationView.currentIndex]
+            let progression = self.currentLocation?.locations.progression
+            let locator = Locator(
+                href: resource.href,
+                type: resource.type ?? "text/html",
+                title: self.tableOfContentsTitleByHref[resource.href],
+                locations: Locations(
+                    progression:  progression ?? 0,
+                    cssSelector: resultPos["cssSelector"] as? String,
+                    partialCfi: resultPos["partialCfi"] as? String,
+                    domRange: resultPos["domRange"] as? NSDictionary
+                ),
+                text: LocatorText(
+                    highlight:  (result?["text"] as! NSDictionary)["highlight"] as! String
+                )
+            )
+            completion(locator)
+        }
+    }
+    
+    public func deleteHighlight(_ id: String) {
+        executeJavascript("destroyHighlight(\'\(id)\')") {
+            result, error in
+        }
+        executeJavascript("destroyHighlight(\'\(id.replacingOccurrences(of: "HIGHLIGHT", with: "ANNOTATION"))\')") {
+            result, error in
+            
+        }
+    }
+    
+    @objc internal func convJSON (dictionary: NSDictionary) -> String? {
+        if let jsonData = try? JSONSerialization.data(
+            withJSONObject: dictionary,
+            options: .prettyPrinted) {
+            let theJSONText = String(data:jsonData,encoding:.ascii)!
+            return theJSONText
+        }
+        return nil
+    }
+    
+    public func createHighlight(_ colorInfo:NSDictionary, completion: @escaping (Highlight) -> Void) {
+        currentSelection { locator in
+            let locations:NSDictionary = [
+                "cssSelector" : locator?.locations.cssSelector,
+                "partialCfi" : locator?.locations.partialCfi,
+                "domRange"  : locator?.locations.domRange
+            ]
+            let location:NSDictionary = [
+                "locations" : locations
+            ]
+            
+            self.executeJavascript("createHighlight(\(self.convJSON(location)!), \(self.convJSON(colorInfo)!) ,true)") {
+                result, error in
+                guard let resultPos =  result else {
+                    return
+                }
+                
+                completion(
+                    Highlight(
+                        id: resultPos["id"] as? String ?? "",
+                        locator: locator!,
+                        style: ""
+                    )
+                )
+            }
+        }
+    }
+    
+    override open func viewDidLayoutSubviews() {
+        updateUserSettingStyle()
+        print("viewDidLayoutSubviews")
     }
     
 }

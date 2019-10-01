@@ -32,6 +32,8 @@ protocol EPUBSpreadViewDelegate: class {
     /// Called when the pages visible in the spread changed.
     func spreadViewPagesDidChange(_ spreadView: EPUBSpreadView)
     
+    func highlightActivated(_ id: String)
+    func highlightAnnotationMarkActivated(_ id: String)
 }
 
 class EPUBSpreadView: UIView, Loggable {
@@ -166,6 +168,17 @@ class EPUBSpreadView: UIView, Loggable {
     func evaluateScript(_ script: String, inResource href: String, completion: ((Any?, Error?) -> Void)? = nil) {
         webView.evaluateJavaScript(script, completionHandler: completion)
     }
+    
+    private func highlightActivated(_ id: Any) {
+        self.delegate?.highlightActivated(id as? String ?? "")
+        return
+    }
+    
+    /// Called from the JS code when a annotation tap is detected.
+    private func highlightAnnotationMarkActivated(_ id: Any) {
+        self.delegate?.highlightAnnotationMarkActivated(id as? String ?? "")
+        return
+    }
   
     /// Called from the JS code when a tap is detected.
     private func didTap(_ body: Any) {
@@ -176,6 +189,7 @@ class EPUBSpreadView: UIView, Loggable {
         }
 
         delegate?.spreadView(self, didTapAt: point)
+        UIMenuController.shared.setMenuVisible(false, animated: true)
     }
     
     /// Converts the touch data returned by the JavaScript `tap` event into a point in the webview's coordinate space.
@@ -213,6 +227,8 @@ class EPUBSpreadView: UIView, Loggable {
     /// Update webview style to userSettings.
     /// To override in subclasses.
     func applyUserSettingsStyle() {
+        let notification = Notification.Name(rawValue: "pageLoaded")
+        NotificationCenter.default.post(name: notification, object: self, userInfo:nil)
         assert(Thread.isMainThread, "User settings must be updated from the main thread")
     }
     
@@ -279,6 +295,8 @@ class EPUBSpreadView: UIView, Loggable {
     
     private static let gesturesScript = loadScript(named: "gestures")
     private static let utilsScript = loadScript(named: "utils")
+    private static let highlightScript = loadScript(named: "highlight")
+    private static let cryptoJSScript = loadScript(named: "crypto-sha256")
 
     class func loadScript(named name: String) -> String {
         return Bundle(for: EPUBSpreadView.self)
@@ -294,7 +312,9 @@ class EPUBSpreadView: UIView, Loggable {
     func makeScripts() -> [WKUserScript] {
         return [
             WKUserScript(source: EPUBSpreadView.gesturesScript, injectionTime: .atDocumentStart, forMainFrameOnly: false),
-            WKUserScript(source: EPUBSpreadView.utilsScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
+            WKUserScript(source: EPUBSpreadView.utilsScript, injectionTime: .atDocumentStart, forMainFrameOnly: false),
+            WKUserScript(source: EPUBSpreadView.highlightScript, injectionTime: .atDocumentStart, forMainFrameOnly: false),
+            WKUserScript(source: EPUBSpreadView.cryptoJSScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         ]
     }
     
@@ -321,6 +341,8 @@ class EPUBSpreadView: UIView, Loggable {
     func registerJSMessages() {
         registerJSMessage(named: "tap") { [weak self] in self?.didTap($0) }
         registerJSMessage(named: "spreadLoaded") { [weak self] in self?.spreadDidLoad($0) }
+        registerJSMessage(named: "highlightActivated") { [weak self] in self?.highlightActivated($0) }
+        registerJSMessage(named: "highlightAnnotationMarkActivated") { [weak self] in self?.highlightAnnotationMarkActivated($0) }
     }
     
     /// Add the message handlers for incoming javascript events.

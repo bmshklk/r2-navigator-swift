@@ -3,6 +3,9 @@
   var touchStartTime = null;
   var startX = 0;
   var startY = 0;
+  var touchStartX = 0;
+  var touchStartY = 0;
+
 
   document.addEventListener('touchstart', touchstart, false);
   document.addEventListener('touchend', touchend, false);
@@ -17,6 +20,8 @@
     startX = touch.pageX;
     startY = touch.pageY;
     touchStartTime = Date.now();
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
   }
 
   function touchend(event) {

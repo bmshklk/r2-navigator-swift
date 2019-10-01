@@ -39,12 +39,17 @@ final class EditingActionsController {
     
     private let actions: [EditingAction]
     private let license: DRMLicense?
+    private var documentWebView: EPUBSpreadView?
+    private var _initMenuActivated = false
 
     init(actions: [EditingAction], license: DRMLicense?) {
         self.actions = actions
         self.license = license
         
         NotificationCenter.default.addObserver(self, selector: #selector(pasteboardDidChange), name: UIPasteboard.changedNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(initMenuActivated), name: NSNotification.Name(rawValue: "initMenuActivated"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(defaultMenu), name: NSNotification.Name(rawValue: "defaultMenu"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(memo), name: NSNotification.Name(rawValue: "meno"), object: nil)
     }
     
     deinit {
@@ -52,6 +57,9 @@ final class EditingActionsController {
     }
 
     func canPerformAction(_ action: Selector) -> Bool {
+        if _initMenuActivated == true {
+            return false
+        }
         for editingAction in self.actions {
             if action == Selector(editingAction.rawValue) {
                 return true
@@ -79,6 +87,20 @@ final class EditingActionsController {
         needsCopyCheck = true
 
         return true
+    }
+    
+    @objc private func initMenuActivated(_ notification: NSNotification) {
+        _initMenuActivated = true
+    }
+    
+    @objc private func defaultMenu(_ notification: NSNotification) {
+        _initMenuActivated = false
+    }
+    
+    @objc private func memo() {
+        guard needsCopyCheck else {
+            return
+        }
     }
     
     @objc private func pasteboardDidChange() {
