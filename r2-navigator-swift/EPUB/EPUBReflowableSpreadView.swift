@@ -71,7 +71,7 @@ final class EPUBReflowableSpreadView: EPUBSpreadView {
 
         // Disables paginated mode if scroll is on.
         scrollView.isPagingEnabled = !isScrollEnabled
-        
+        evaluateScript("setScrollMode(\(isScrollEnabled))", inResource: "")
         updateContentInset()
     }
 

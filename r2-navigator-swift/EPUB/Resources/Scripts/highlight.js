@@ -127,8 +127,8 @@ function processTouchEvent(win, ev) {
     }
     const paginated = isPaginated(document);
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? (bodyRect.left-scrollElement.scrollLeft) : 0;
-    const yOffset = paginated ? (bodyRect.top-scrollElement.scrollTop) : -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft);
+    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
     let foundHighlight;
     let foundElement;
     let foundRect;
@@ -204,7 +204,6 @@ function processTouchEvent(win, ev) {
             }
         }
         else if (ev.type === "touchstart" || ev.type === "touchend") {
-            console.log(JSON.stringify(foundHighlight))
             
             const size = {
             screenWidth: window.outerWidth,
@@ -254,8 +253,8 @@ function processMouseEvent(win, ev) {
     
     const paginated = isPaginated(document);
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? (bodyRect.left-scrollElement.scrollLeft) : 0;
-    const yOffset = paginated ? (bodyRect.top-scrollElement.scrollTop) : -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft);
+    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
     let foundHighlight;
     let foundElement;
     let foundRect;
@@ -1176,7 +1175,6 @@ function computeCFI (node) {
 };
 
 function _createHighlight(locations, color, pointerInteraction, type) {
-    console.log(JSON.stringify(locations))
     const rangeInfo = location2RangeInfo(locations)
     const uniqueStr = `${rangeInfo.cfi}${rangeInfo.startContainerElementCssSelector}${rangeInfo.startContainerChildTextNodeIndex}${rangeInfo.startOffset}${rangeInfo.endContainerElementCssSelector}${rangeInfo.endContainerChildTextNodeIndex}${rangeInfo.endOffset}`;
     
@@ -1204,7 +1202,6 @@ function _createHighlight(locations, color, pointerInteraction, type) {
 }
 
 function createHighlight(selectionInfo, color, pointerInteraction) {
-    console.log(JSON.stringify(selectionInfo))
     return _createHighlight(selectionInfo, color, pointerInteraction, ID_HIGHLIGHTS_CONTAINER)
 }
 
@@ -1257,12 +1254,11 @@ function createHighlightDom(win, highlight, annotationFlag) {
 	}
 	
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? (-scrollElement.scrollLeft) : 0;
-    const yOffset = paginated ? (-scrollElement.scrollTop) : -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft);
-    console.log("paginated : " + paginated)
-    const annotationOffset = paginated ? (bodyRect.top-scrollElement.scrollTop) : yOffset;
-    console.log("scroll : " + JSON.stringify(scrollElement));
-                                                                             
+    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
+    const annotationOffset = paginated ? -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft) : (bodyRect.top-scrollElement.scrollTop) ;
+    console.log("x : " + yOffset);
+    console.log("y : " + yOffset);
     const useSVG = !DEBUG_VISUALS && USE_SVG;
     //const useSVG = USE_SVG;
     const drawUnderline = false;
@@ -1279,7 +1275,6 @@ function createHighlightDom(win, highlight, annotationFlag) {
 	const rangeAnnotationBoundingClientRect = frameForHighlightAnnotationMarkWithID(win, highlight.id);
 	
     for (const clientRect of clientRects) {
-        console.log('clientTop : ' + clientRect.top);
         if (useSVG) {
             const borderThickness = 0;
             if (!highlightAreaSVGDocFrag) {
@@ -1538,7 +1533,6 @@ function createHighlightDom(win, highlight, annotationFlag) {
 			top: rangeAnnotationBoundingClientRect.top - annotationOffset,
 			width: ANNOTATION_WIDTH
 		};
-        console.log(rangeAnnotationBoundingClientRect.top - yOffset)
     } else {
 		const rangeBoundingClientRect = range.getBoundingClientRect();
 		highlightBounding.rect = {
@@ -1759,7 +1753,7 @@ function frameForHighlightAnnotationMarkWithID(win, id) {
 	const scrollElement = getScrollingElement(document);
 	const paginated = isPaginated(document);
 	const bodyRect = document.body.getBoundingClientRect();
-    const yOffset = paginated ? (bodyRect.top-scrollElement.scrollTop) : -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft);
+    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
 	var newTop = topClientRect.top;											
 
 	if (_highlightsContainer) {
@@ -1845,7 +1839,6 @@ function location2RangeInfo(location) {
     const start = domRange.start
     const end = domRange.end
     
-    console.log("test")
     return {
         cfi: location.partialCfi,
         endContainerChildTextNodeIndex: end.textNodeIndex,
@@ -1877,7 +1870,6 @@ function rectangleForHighlightWithID(id) {
     const doNotMergeHorizontallyAlignedRects = drawUnderline || drawStrikeThrough;
     //const clientRects = DEBUG_VISUALS ? range.getClientRects() :
     const clientRects = getClientRectsNoOverlap(range, doNotMergeHorizontallyAlignedRects);
-    console.log(JSON.stringify(clientRects))
     var size = {
     screenWidth: window.outerWidth,
     screenHeight: window.outerHeight,
@@ -1889,6 +1881,17 @@ function rectangleForHighlightWithID(id) {
     
     return size;
     
+}
+
+function setScrollMode(flag) {
+    console.log("scrollmode : " + flag);
+    if (!flag) {
+        document.documentElement.classList.add(CLASS_PAGINATED);
+        console.log("classlist : " + document.documentElement.classList);
+        console.log("paginated : " + isPaginated(window));
+    } else {
+        document.documentElement.classList.remove(CLASS_PAGINATED);
+    }
 }
 
 /*
