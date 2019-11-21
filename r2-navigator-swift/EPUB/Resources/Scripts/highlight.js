@@ -127,8 +127,15 @@ function processTouchEvent(win, ev) {
     }
     const paginated = isPaginated(document);
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
-    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
+    let xOffset;
+    let yOffset;
+    if (navigator.userAgent.match(/Android/i)) {
+        xOffset = paginated ? (-scrollElement.scrollLeft) : bodyRect.left;
+        yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
+    } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+        yOffset = paginated ? 0 : (bodyRect.top);
+    }
     let foundHighlight;
     let foundElement;
     let foundRect;
@@ -253,8 +260,15 @@ function processMouseEvent(win, ev) {
     
     const paginated = isPaginated(document);
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
-    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
+    let xOffset;
+    let yOffset;
+    if (navigator.userAgent.match(/Android/i)) {
+        xOffset = paginated ? (-scrollElement.scrollLeft) : bodyRect.left;
+        yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
+    } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+        yOffset = paginated ? 0 : (bodyRect.top);
+    }
     let foundHighlight;
     let foundElement;
     let foundRect;
@@ -1254,11 +1268,6 @@ function createHighlightDom(win, highlight, annotationFlag) {
 	}
 	
     const bodyRect = document.body.getBoundingClientRect();
-    const xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
-    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
-    const annotationOffset = paginated ? -(((-bodyRect.top / (bodyRect.left + scrollElement.scrollLeft))) * scrollElement.scrollLeft) : (bodyRect.top-scrollElement.scrollTop) ;
-    console.log("x : " + yOffset);
-    console.log("y : " + yOffset);
     const useSVG = !DEBUG_VISUALS && USE_SVG;
     //const useSVG = USE_SVG;
     const drawUnderline = false;
@@ -1270,10 +1279,24 @@ function createHighlightDom(win, highlight, annotationFlag) {
     const roundedCorner = 3;
     const underlineThickness = 2;
     const strikeThroughLineThickness = 3;
-	const opacity = DEFAULT_BACKGROUND_COLOR_OPACITY;
-	let extra = "";
-	const rangeAnnotationBoundingClientRect = frameForHighlightAnnotationMarkWithID(win, highlight.id);
-	
+    const opacity = DEFAULT_BACKGROUND_COLOR_OPACITY;
+    let extra = "";
+    const rangeAnnotationBoundingClientRect = frameForHighlightAnnotationMarkWithID(win, highlight.id);
+    
+    let xOffset;
+    let yOffset;
+    let annotationOffset;
+    
+    if (navigator.userAgent.match(/Android/i)) {
+        xOffset = paginated ? (-scrollElement.scrollLeft) : bodyRect.left;
+        yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
+        annotationOffset = parseInt((rangeAnnotationBoundingClientRect.right - xOffset)/ window.innerWidth) + 1;
+    } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+        yOffset = paginated ? 0 : (bodyRect.top);
+        annotationOffset = parseInt((rangeAnnotationBoundingClientRect.right/window.innerWidth) + 1);
+    }
+    
     for (const clientRect of clientRects) {
         if (useSVG) {
             const borderThickness = 0;
@@ -1281,36 +1304,36 @@ function createHighlightDom(win, highlight, annotationFlag) {
                 highlightAreaSVGDocFrag = document.createDocumentFragment();
             }
             const highlightAreaSVGRect = document.createElementNS(SVG_XML_NAMESPACE, "rect");
-			
-			highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
+            
+            highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
             highlightAreaSVGRect.setAttribute("style", `fill: rgb(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}) !important; fill-opacity: ${opacity} !important; stroke-width: 0;`);
             highlightAreaSVGRect.scale = scale;
-			
-			/*
-            highlightAreaSVGRect.rect = {
-				height: clientRect.height,
-				left: clientRect.left - xOffset,
-				top: clientRect.top - yOffset,
-				width: clientRect.width,
-            };
-			*/
-			
-			if (annotationFlag) {
-				highlightAreaSVGRect.rect = {
-					height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-					left: bodyRect.width - ANNOTATION_WIDTH,
-					top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-					width: ANNOTATION_WIDTH
-				};
-			} else {
-				highlightAreaSVGRect.rect = {
-					height: clientRect.height,
-					left: clientRect.left - xOffset,
-					top: clientRect.top - yOffset,
-					width: clientRect.width
-				};
-			}	
-			
+            
+            /*
+             highlightAreaSVGRect.rect = {
+             height: clientRect.height,
+             left: clientRect.left - xOffset,
+             top: clientRect.top - yOffset,
+             width: clientRect.width,
+             };
+             */
+            
+            if (annotationFlag) {
+                highlightAreaSVGRect.rect = {
+                    height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+                    left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+                    top: rangeAnnotationBoundingClientRect.top - yOffset,
+                    width: ANNOTATION_WIDTH
+                };
+            } else {
+                highlightAreaSVGRect.rect = {
+                    height: clientRect.height,
+                    left: clientRect.left - xOffset,
+                    top: clientRect.top - yOffset,
+                    width: clientRect.width
+                };
+            }
+            
             highlightAreaSVGRect.setAttribute("rx", `${roundedCorner * scale}`);
             highlightAreaSVGRect.setAttribute("ry", `${roundedCorner * scale}`);
             highlightAreaSVGRect.setAttribute("x", `${(highlightAreaSVGRect.rect.left - borderThickness) * scale}`);
@@ -1320,33 +1343,33 @@ function createHighlightDom(win, highlight, annotationFlag) {
             highlightAreaSVGDocFrag.appendChild(highlightAreaSVGRect);
             if (drawUnderline) {
                 const highlightAreaSVGLine = document.createElementNS(SVG_XML_NAMESPACE, "line");
-				highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
+                highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
                 highlightAreaSVGLine.setAttribute("style", `stroke-linecap: round; stroke-width: ${underlineThickness * scale}; stroke: rgb(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}) !important; stroke-opacity: ${opacity} !important`);
                 highlightAreaSVGLine.scale = scale;
-				/*
-                highlightAreaSVGLine.rect = {
-					height: clientRect.height,
-					left: clientRect.left - xOffset,
-					top: clientRect.top - yOffset,
-					width: clientRect.width,
-                };
-				*/
-				if (annotationFlag) {
-					highlightAreaSVGLine.rect = {
-						height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-						left: bodyRect.width - ANNOTATION_WIDTH,
-						top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-						width: ANNOTATION_WIDTH
-					};
-				} else {
-					highlightAreaSVGLine.rect = {
-						height: clientRect.height,
-						left: clientRect.left - xOffset,
-						top: clientRect.top - yOffset,
-						width: clientRect.width
-					};
-				}
-				
+                /*
+                 highlightAreaSVGLine.rect = {
+                 height: clientRect.height,
+                 left: clientRect.left - xOffset,
+                 top: clientRect.top - yOffset,
+                 width: clientRect.width,
+                 };
+                 */
+                if (annotationFlag) {
+                    highlightAreaSVGLine.rect = {
+                        height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+                        left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+                        top: rangeAnnotationBoundingClientRect.top - yOffset,
+                        width: ANNOTATION_WIDTH
+                    };
+                } else {
+                    highlightAreaSVGLine.rect = {
+                        height: clientRect.height,
+                        left: clientRect.left - xOffset,
+                        top: clientRect.top - yOffset,
+                        width: clientRect.width
+                    };
+                }
+                
                 const lineOffset = (highlightAreaSVGLine.rect.width > roundedCorner) ? roundedCorner : 0;
                 highlightAreaSVGLine.setAttribute("x1", `${(highlightAreaSVGLine.rect.left + lineOffset) * scale}`);
                 highlightAreaSVGLine.setAttribute("x2", `${(highlightAreaSVGLine.rect.left + highlightAreaSVGLine.rect.width - lineOffset) * scale}`);
@@ -1359,36 +1382,36 @@ function createHighlightDom(win, highlight, annotationFlag) {
             }
             if (drawStrikeThrough) {
                 const highlightAreaSVGLine = document.createElementNS(SVG_XML_NAMESPACE, "line");
-				
-				highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
+                
+                highlightAreaSVGRect.setAttribute("class", CLASS_HIGHLIGHT_AREA);
                 highlightAreaSVGLine.setAttribute("style", `stroke-linecap: butt; stroke-width: ${strikeThroughLineThickness * scale}; stroke: rgb(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}) !important; stroke-opacity: ${opacity} !important`);
                 highlightAreaSVGLine.scale = scale;
-				
-				/*
-                highlightAreaSVGLine.rect = {
-					height: clientRect.height,
-					left: clientRect.left - xOffset,
-					top: clientRect.top - yOffset,
-					width: clientRect.width,
-                };
-				*/
-				
-				if (annotationFlag) {
-					highlightAreaSVGLine.rect = {
-						height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-						left: bodyRect.width - ANNOTATION_WIDTH,
-						top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-						width: ANNOTATION_WIDTH
-					};
-				} else {
-					highlightAreaSVGLine.rect = {
-						height: clientRect.height,
-						left: clientRect.left - xOffset,
-						top: clientRect.top - yOffset,
-						width: clientRect.width
-					};
-				}
-				
+                
+                /*
+                 highlightAreaSVGLine.rect = {
+                 height: clientRect.height,
+                 left: clientRect.left - xOffset,
+                 top: clientRect.top - yOffset,
+                 width: clientRect.width,
+                 };
+                 */
+                
+                if (annotationFlag) {
+                    highlightAreaSVGLine.rect = {
+                        height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+                        left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+                        top: rangeAnnotationBoundingClientRect.top - yOffset,
+                        width: ANNOTATION_WIDTH
+                    };
+                } else {
+                    highlightAreaSVGLine.rect = {
+                        height: clientRect.height,
+                        left: clientRect.left - xOffset,
+                        top: clientRect.top - yOffset,
+                        width: clientRect.width
+                    };
+                }
+                
                 highlightAreaSVGLine.setAttribute("x1", `${highlightAreaSVGLine.rect.left * scale}`);
                 highlightAreaSVGLine.setAttribute("x2", `${(highlightAreaSVGLine.rect.left + highlightAreaSVGLine.rect.width) * scale}`);
                 const lineOffset = highlightAreaSVGLine.rect.height / 2;
@@ -1402,89 +1425,89 @@ function createHighlightDom(win, highlight, annotationFlag) {
         }
         else {
             const highlightArea = document.createElement("div");
-			
-			highlightArea.setAttribute("class", CLASS_HIGHLIGHT_AREA);
-	  
-  		    if (DEBUG_VISUALS) {
-				 const rgb = Math.round(0xffffff * Math.random());
-				 const r = rgb >> 16;
-				 const g = rgb >> 8 & 255;
-				 const b = rgb & 255;
-				 extra = `outline-color: rgb(${r}, ${g}, ${b}); outline-style: solid; outline-width: 1px; outline-offset: -1px;`;
-			}
-			else {
-			
-				if (drawUnderline) {
-					extra += `border-bottom: ${underlineThickness * scale}px solid rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important`;
+            
+            highlightArea.setAttribute("class", CLASS_HIGHLIGHT_AREA);
+            
+            if (DEBUG_VISUALS) {
+                const rgb = Math.round(0xffffff * Math.random());
+                const r = rgb >> 16;
+                const g = rgb >> 8 & 255;
+                const b = rgb & 255;
+                extra = `outline-color: rgb(${r}, ${g}, ${b}); outline-style: solid; outline-width: 1px; outline-offset: -1px;`;
+            }
+            else {
+                
+                if (drawUnderline) {
+                    extra += `border-bottom: ${underlineThickness * scale}px solid rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important`;
                 }
             }
             highlightArea.setAttribute("style", `border-radius: ${roundedCorner}px !important; background-color: rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important; ${extra}`);
             highlightArea.style.setProperty("pointer-events", "none");
             highlightArea.style.position = paginated ? "fixed" : "absolute";
             highlightArea.scale = scale;
-			/*
-            highlightArea.rect = {
-				height: clientRect.height,
-				left: clientRect.left - xOffset,
-				top: clientRect.top - yOffset,
-				width: clientRect.width,
-            };
-			*/
-			if (annotationFlag) {
-				highlightArea.rect = {
-					height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-					left: bodyRect.width - ANNOTATION_WIDTH,
-					top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-					width: ANNOTATION_WIDTH
-				};
-			} else {
-				highlightArea.rect = {
-					height: clientRect.height,
-					left: clientRect.left - xOffset,
-					top: clientRect.top - yOffset,
-					width: clientRect.width
-				};
-			}
-				
+            /*
+             highlightArea.rect = {
+             height: clientRect.height,
+             left: clientRect.left - xOffset,
+             top: clientRect.top - yOffset,
+             width: clientRect.width,
+             };
+             */
+            if (annotationFlag) {
+                highlightArea.rect = {
+                    height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+                    left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+                    top: rangeAnnotationBoundingClientRect.top - yOffset,
+                    width: ANNOTATION_WIDTH
+                };
+            } else {
+                highlightArea.rect = {
+                    height: clientRect.height,
+                    left: clientRect.left - xOffset,
+                    top: clientRect.top - yOffset,
+                    width: clientRect.width
+                };
+            }
+            
             highlightArea.style.width = `${highlightArea.rect.width * scale}px`;
             highlightArea.style.height = `${highlightArea.rect.height * scale}px`;
             highlightArea.style.left = `${highlightArea.rect.left * scale}px`;
             highlightArea.style.top = `${highlightArea.rect.top * scale}px`;
             highlightParent.append(highlightArea);
             if (!DEBUG_VISUALS && drawStrikeThrough) {
-            //if (drawStrikeThrough) {
+                //if (drawStrikeThrough) {
                 const highlightAreaLine = document.createElement("div");
-				highlightAreaLine.setAttribute("class", CLASS_HIGHLIGHT_AREA);
-	
+                highlightAreaLine.setAttribute("class", CLASS_HIGHLIGHT_AREA);
+                
                 highlightAreaLine.setAttribute("style", `background-color: rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important;`);
                 highlightAreaLine.style.setProperty("pointer-events", "none");
                 highlightAreaLine.style.position = paginated ? "fixed" : "absolute";
                 highlightAreaLine.scale = scale;
-				/*
-                highlightAreaLine.rect = {
-					height: clientRect.height,
-					left: clientRect.left - xOffset,
-					top: clientRect.top - yOffset,
-					width: clientRect.width,
-                };
-				*/
-				
-				if (annotationFlag) {
-					highlightAreaLine.rect = {
-						height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-						left: bodyRect.width - ANNOTATION_WIDTH,
-						top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-						width: ANNOTATION_WIDTH
-					};
-				} else {
-					highlightAreaLine.rect = {
-						height: clientRect.height,
-						left: clientRect.left - xOffset,
-						top: clientRect.top - yOffset,
-						width: clientRect.width
-					};
-				}
-				
+                /*
+                 highlightAreaLine.rect = {
+                 height: clientRect.height,
+                 left: clientRect.left - xOffset,
+                 top: clientRect.top - yOffset,
+                 width: clientRect.width,
+                 };
+                 */
+                
+                if (annotationFlag) {
+                    highlightAreaLine.rect = {
+                        height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+                        left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+                        top: rangeAnnotationBoundingClientRect.top - yOffset,
+                        width: ANNOTATION_WIDTH
+                    };
+                } else {
+                    highlightAreaLine.rect = {
+                        height: clientRect.height,
+                        left: clientRect.left - xOffset,
+                        top: clientRect.top - yOffset,
+                        width: clientRect.width
+                    };
+                }
+                
                 highlightAreaLine.style.width = `${highlightAreaLine.rect.width * scale}px`;
                 highlightAreaLine.style.height = `${strikeThroughLineThickness * scale}px`;
                 highlightAreaLine.style.left = `${highlightAreaLine.rect.left * scale}px`;
@@ -1492,12 +1515,12 @@ function createHighlightDom(win, highlight, annotationFlag) {
                 highlightParent.append(highlightAreaLine);
             }
         }
-		
-		if (annotationFlag) {
-			break;
-		}
-	}
-	
+        
+        if (annotationFlag) {
+            break;
+        }
+    }
+    
     if (useSVG && highlightAreaSVGDocFrag) {
         const highlightAreaSVG = document.createElementNS(SVG_XML_NAMESPACE, "svg");
         highlightAreaSVG.setAttribute("pointer-events", "none");
@@ -1508,49 +1531,49 @@ function createHighlightDom(win, highlight, annotationFlag) {
         highlightAreaSVG.append(highlightAreaSVGDocFrag);
         highlightParent.append(highlightAreaSVG);
     }
-	
+    
     const highlightBounding = document.createElement("div");
-	
-	if ( annotationFlag ) {
-		highlightBounding.setAttribute("class", CLASS_ANNOTATION_BOUNDING_AREA);
+    
+    if ( annotationFlag ) {
+        highlightBounding.setAttribute("class", CLASS_ANNOTATION_BOUNDING_AREA);
         highlightBounding.setAttribute("style", `border-radius: ${roundedCorner}px !important; background-color: rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important; ${extra}`);
-	} else {
-		highlightBounding.setAttribute("class", CLASS_HIGHLIGHT_BOUNDING_AREA);
-	}
-	
-	highlightBounding.style.setProperty("pointer-events", "none");
+    } else {
+        highlightBounding.setAttribute("class", CLASS_HIGHLIGHT_BOUNDING_AREA);
+    }
+    
+    highlightBounding.style.setProperty("pointer-events", "none");
     highlightBounding.style.position = paginated ? "fixed" : "absolute";
     highlightBounding.scale = scale;
-	
-	if (DEBUG_VISUALS) {
-		 highlightBounding.setAttribute("style", `outline-color: magenta; outline-style: solid; outline-width: 1px; outline-offset: -1px;`);
-	}
-	
-	if (annotationFlag) {
-	    highlightBounding.rect = {
-			height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
-			left: bodyRect.width - ANNOTATION_WIDTH,
-			top: rangeAnnotationBoundingClientRect.top - annotationOffset,
-			width: ANNOTATION_WIDTH
-		};
+    
+    if (DEBUG_VISUALS) {
+        highlightBounding.setAttribute("style", `outline-color: magenta; outline-style: solid; outline-width: 1px; outline-offset: -1px;`);
+    }
+    
+    if (annotationFlag) {
+        highlightBounding.rect = {
+            height: ANNOTATION_WIDTH, //rangeAnnotationBoundingClientRect.height - rangeAnnotationBoundingClientRect.height/4,
+            left: window.innerWidth * annotationOffset - ANNOTATION_WIDTH,
+            top: rangeAnnotationBoundingClientRect.top - yOffset,
+            width: ANNOTATION_WIDTH
+        };
     } else {
-		const rangeBoundingClientRect = range.getBoundingClientRect();
-		highlightBounding.rect = {
-			height: rangeBoundingClientRect.height,
-			left: rangeBoundingClientRect.left - xOffset,
-			top: rangeBoundingClientRect.top - yOffset,
-			width: rangeBoundingClientRect.width
-		};
-	}
-
+        const rangeBoundingClientRect = range.getBoundingClientRect();
+        highlightBounding.rect = {
+            height: rangeBoundingClientRect.height,
+            left: rangeBoundingClientRect.left - xOffset,
+            top: rangeBoundingClientRect.top - yOffset,
+            width: rangeBoundingClientRect.width
+        };
+    }
+    
     highlightBounding.style.width = `${highlightBounding.rect.width * scale}px`;
     highlightBounding.style.height = `${highlightBounding.rect.height * scale}px`;
-	highlightBounding.style.left = `${highlightBounding.rect.left * scale}px`;
+    highlightBounding.style.left = `${highlightBounding.rect.left * scale}px`;
     highlightBounding.style.top = `${highlightBounding.rect.top * scale}px`;
-	
+    
     highlightParent.append(highlightBounding);
     highlightsContainer.append(highlightParent);
-	
+    
     return highlightParent;
 }
 
@@ -1753,7 +1776,12 @@ function frameForHighlightAnnotationMarkWithID(win, id) {
 	const scrollElement = getScrollingElement(document);
 	const paginated = isPaginated(document);
 	const bodyRect = document.body.getBoundingClientRect();
-    const yOffset = paginated ? 0 : (bodyRect.top-scrollElement.scrollTop);
+    let yOffset;
+    if (navigator.userAgent.match(/Android/i)) {
+        yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
+    } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+        yOffset = paginated ? 0 : (bodyRect.top);
+    }
 	var newTop = topClientRect.top;											
 
 	if (_highlightsContainer) {
@@ -1883,12 +1911,35 @@ function rectangleForHighlightWithID(id) {
     
 }
 
+function getSelectionRect() {
+    try {
+        var sel = window.getSelection();
+        if (!sel) {
+            return;
+        }
+        var range = sel.getRangeAt(0);
+        
+        const clientRect = range.getBoundingClientRect();
+        
+        var handleBounds = {
+        screenWidth: window.outerWidth,
+        screenHeight: window.outerHeight,
+        left: clientRect.left,
+        width: clientRect.width,
+        top: clientRect.top,
+        height: clientRect.height
+        };
+        return handleBounds;
+    }
+    catch (e) {
+        console.log(e)
+        return null;
+    }
+};
+
 function setScrollMode(flag) {
-    console.log("scrollmode : " + flag);
     if (!flag) {
         document.documentElement.classList.add(CLASS_PAGINATED);
-        console.log("classlist : " + document.documentElement.classList);
-        console.log("paginated : " + isPaginated(window));
     } else {
         document.documentElement.classList.remove(CLASS_PAGINATED);
     }
