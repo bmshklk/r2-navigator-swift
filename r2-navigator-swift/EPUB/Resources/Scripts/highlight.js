@@ -133,7 +133,7 @@ function processTouchEvent(win, ev) {
         xOffset = paginated ? (-scrollElement.scrollLeft) : bodyRect.left;
         yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
     } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+        xOffset = paginated ? (-scrollElement.scrollLeft) : (-scrollElement.scrollLeft);
         yOffset = paginated ? 0 : (bodyRect.top);
     }
     let foundHighlight;
@@ -266,7 +266,7 @@ function processMouseEvent(win, ev) {
         xOffset = paginated ? (-scrollElement.scrollLeft) : bodyRect.left;
         yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
     } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
+        xOffset = paginated ? (-scrollElement.scrollLeft) : (-scrollElement.scrollLeft);
         yOffset = paginated ? 0 : (bodyRect.top);
     }
     let foundHighlight;
@@ -758,7 +758,7 @@ function ensureContainer(win, annotationFlag) {
 		_highlightsContainer.setAttribute("id", ID_HIGHLIGHTS_CONTAINER);
 
         _highlightsContainer.style.setProperty("pointer-events", "none");
-        document.body.append(_highlightsContainer);
+        document.documentElement.append(_highlightsContainer);
     }
 	
     return _highlightsContainer;
@@ -1232,7 +1232,7 @@ function createAnnotation(id) {
                                        });
     if ( i == _highlights.length )
         return
-        
+
     var locations = {
         locations: rangeInfo2Location(highlight.rangeInfo)
     }
@@ -1292,9 +1292,9 @@ function createHighlightDom(win, highlight, annotationFlag) {
         yOffset = paginated ? (-scrollElement.scrollTop) : bodyRect.top;
         annotationOffset = parseInt((rangeAnnotationBoundingClientRect.right - xOffset)/ window.innerWidth) + 1;
     } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-        xOffset = paginated ? 0 : (-scrollElement.scrollLeft);
-        yOffset = paginated ? 0 : (bodyRect.top);
-        annotationOffset = parseInt((rangeAnnotationBoundingClientRect.right/window.innerWidth) + 1);
+        xOffset = paginated ? (-scrollElement.scrollLeft) : (-scrollElement.scrollLeft);
+        yOffset = 0;
+        annotationOffset = paginated ? parseInt(((rangeAnnotationBoundingClientRect.right-xOffset)/window.innerWidth) + 1) : parseInt((rangeAnnotationBoundingClientRect.right/window.innerWidth) + 1);
     }
     
     for (const clientRect of clientRects) {
@@ -1443,7 +1443,7 @@ function createHighlightDom(win, highlight, annotationFlag) {
             }
             highlightArea.setAttribute("style", `border-radius: ${roundedCorner}px !important; background-color: rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important; ${extra}`);
             highlightArea.style.setProperty("pointer-events", "none");
-            highlightArea.style.position = paginated ? "fixed" : "absolute";
+            highlightArea.style.position = paginated ? "absolute" : "absolute";
             highlightArea.scale = scale;
             /*
              highlightArea.rect = {
@@ -1481,7 +1481,7 @@ function createHighlightDom(win, highlight, annotationFlag) {
                 
                 highlightAreaLine.setAttribute("style", `background-color: rgba(${highlight.color.red}, ${highlight.color.green}, ${highlight.color.blue}, ${opacity}) !important;`);
                 highlightAreaLine.style.setProperty("pointer-events", "none");
-                highlightAreaLine.style.position = paginated ? "fixed" : "absolute";
+                highlightAreaLine.style.position = paginated ? "absolute" : "absolute";
                 highlightAreaLine.scale = scale;
                 /*
                  highlightAreaLine.rect = {
@@ -1524,7 +1524,7 @@ function createHighlightDom(win, highlight, annotationFlag) {
     if (useSVG && highlightAreaSVGDocFrag) {
         const highlightAreaSVG = document.createElementNS(SVG_XML_NAMESPACE, "svg");
         highlightAreaSVG.setAttribute("pointer-events", "none");
-        highlightAreaSVG.style.position = paginated ? "fixed" : "absolute";
+        highlightAreaSVG.style.position = paginated ? "absolute" : "absolute";
         highlightAreaSVG.style.overflow = "visible";
         highlightAreaSVG.style.left = "0";
         highlightAreaSVG.style.top = "0";
@@ -1542,7 +1542,7 @@ function createHighlightDom(win, highlight, annotationFlag) {
     }
     
     highlightBounding.style.setProperty("pointer-events", "none");
-    highlightBounding.style.position = paginated ? "fixed" : "absolute";
+    highlightBounding.style.position = paginated ? "absolute" : "absolute";
     highlightBounding.scale = scale;
     
     if (DEBUG_VISUALS) {

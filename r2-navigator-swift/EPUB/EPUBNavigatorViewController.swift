@@ -533,7 +533,7 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
     }
     
     public func highlightAnnotationMarkActivated(_ id: String) {
-        print("annotation tapped")
+        
         let notification = Notification.Name(rawValue: "annotationActivated")
         let userInfo = [
             "id": id
@@ -635,7 +635,6 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
                 return
             }
             
-            print(highlight.style)
             if !highlight.style.isEmpty {
                 self.showAnnotation(highlight.id)
             }
