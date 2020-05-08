@@ -272,7 +272,7 @@ open class EPUBNavigatorViewController: UIViewController, VisualNavigator, Logga
 
         // Gets the current locator from the positionList, and fill its missing data.
         let progression = spreadView.progression(in: href)
-        let positionIndex = Int(progression * Double(positionList.count - 1))
+        let positionIndex = Int(ceil(progression * Double(positionList.count - 1)))
         var locator = positionList[positionIndex]
         locator.title = tableOfContentsTitleByHref[href]
         locator.locations.progression = progression
@@ -373,6 +373,10 @@ extension EPUBNavigatorViewController: EPUBSpreadViewDelegate {
         if paginationView.currentView == spreadView {
             notifyCurrentLocation()
         }
+    }
+    
+    func spreadView(_ spreadView: EPUBSpreadView, present viewController: UIViewController) {
+        present(viewController, animated: true)
     }
 
 }
@@ -568,9 +572,8 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
         
         
         let highlightID = id
-        executeJavascript("getHighlightFrame(\'\(highlightID)\')") {
-            result, error in
-            guard let position =  result as? NSDictionary else {
+        executeJavascript("getHighlightFrame(\'\(highlightID)\')") { result, error in
+            guard let position =  result else {
                 return
             }
             
@@ -630,7 +633,7 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
         
         executeJavascript("createHighlight(\(highlight.locator), \(colorInfo) ,true)") {
             result, error in
-            guard let position =  result as? NSDictionary else {
+            guard let position = result else {
                 print(error)
                 return
             }
@@ -712,9 +715,9 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
     public func createHighlight(_ colorInfo:NSDictionary, completion: @escaping (Highlight) -> Void) {
         currentSelection { locator in
             let locations:NSDictionary = [
-                "cssSelector" : locator?.locations.cssSelector,
-                "partialCfi" : locator?.locations.partialCfi,
-                "domRange"  : locator?.locations.domRange
+                "cssSelector" : locator?.locations.cssSelector ?? "",
+                "partialCfi" : locator?.locations.partialCfi ?? "",
+                "domRange"  : locator?.locations.domRange ?? ""
             ]
             let location:NSDictionary = [
                 "locations" : locations
