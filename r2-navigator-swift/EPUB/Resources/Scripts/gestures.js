@@ -1,34 +1,8 @@
 (function() {
-
-  var isTapping = false;
-  var touchStartTime = null;
-  var startX = 0;
-  var startY = 0;
-  var touchStartX = 0;
-  var touchStartY = 0;
-
-
-  document.addEventListener('touchstart', touchstart, false);
-  document.addEventListener('touchend', touchend, false);
-
-  function touchstart(event) {
-    isTapping = (event.touches.length == 1);
-    if (isInteractiveElement(event.target) || !isTapping) {
-      return;
-    }
-
-    var touch = event.changedTouches[0];
-    startX = touch.pageX;
-    startY = touch.pageY;
-    touchStartTime = Date.now();
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-  }
-
   window.addEventListener('DOMContentLoaded', function(event) {
-    // If we don't set the CSS cursor property to pointer, then the click events are not triggered pre-iOS 13.
+    // If we don't set the CSS cursor property to pointer, then the contenteditable events are not triggered pre-iOS 13.
     document.body.style.cursor = 'pointer';
-
+    
     document.addEventListener('click', onClick, false);
   });
 
@@ -83,7 +57,7 @@
     if (element.parentElement) {
       return isInteractiveElement(element.parentElement);
     }
-
+    
     return false;
   }
 
