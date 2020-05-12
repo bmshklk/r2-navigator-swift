@@ -77,12 +77,12 @@ open class PDFNavigatorViewController: UIViewController, VisualNavigator, Loggab
         NotificationCenter.default.addObserver(self, selector: #selector(pageDidChange), name: .PDFViewPageChanged, object: pdfView)
         NotificationCenter.default.addObserver(self, selector: #selector(selectionDidChange), name: .PDFViewSelectionChanged, object: pdfView)
         
-        UIMenuController.shared.menuItems = [
-            UIMenuItem(
-                title: R2NavigatorLocalizedString("EditingAction.share"),
-                action: #selector(shareSelection)
-            )
-        ]
+//        UIMenuController.shared.menuItems = [
+//            UIMenuItem(
+//                title: R2NavigatorLocalizedString("EditingAction.share"),
+//                action: #selector(shareSelection)
+//            )
+//        ]
         
         if let locator = initialLocation ?? publication.positionList.first {
             go(to: locator)
