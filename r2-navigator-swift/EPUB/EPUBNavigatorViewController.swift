@@ -15,7 +15,7 @@ import WebKit
 import SafariServices
 import CommonCrypto
 
-public protocol EPUBNavigatorDelegate: VisualNavigatorDelegate {
+public protocol EPUBNavigatorDelegate: VisualNavigatorDelegate, SelectableNavigatorDelegate {
     
     // MARK: - Deprecated
     
@@ -379,6 +379,9 @@ extension EPUBNavigatorViewController: EPUBSpreadViewDelegate {
         present(viewController, animated: true)
     }
 
+    func spreadView(_ spreadView: EPUBSpreadView, selectionDidChange selection: (text: String, frame: CGRect)) {
+        self.delegate?.navigator(self, didChangeSelection: selection)
+    }
 }
 
 extension EPUBNavigatorViewController: EditingActionsControllerDelegate {
@@ -739,10 +742,4 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
             }
         }
     }
-    
-    override open func viewDidLayoutSubviews() {
-        updateUserSettingStyle()
-        print("viewDidLayoutSubviews")
-    }
-    
 }

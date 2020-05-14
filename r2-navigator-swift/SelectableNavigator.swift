@@ -21,3 +21,8 @@ public protocol SelectableNavigator: Navigator {
     func currentSelection(completion: @escaping (Locator?) -> Void)
     
 }
+
+public protocol SelectableNavigatorDelegate: NavigatorDelegate {
+    
+    func navigator(_ navigator: Navigator, didChangeSelection to: (text: String, frame: CGRect))
+}

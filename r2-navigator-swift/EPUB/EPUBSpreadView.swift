@@ -37,6 +37,8 @@ protocol EPUBSpreadViewDelegate: class {
 
     /// Called when the spread view needs to present a view controller.
     func spreadView(_ spreadView: EPUBSpreadView, present viewController: UIViewController)
+    
+    func spreadView(_ spreadView: EPUBSpreadView, selectionDidChange selection: (text: String, frame: CGRect))
 }
 
 class EPUBSpreadView: UIView, Loggable {
@@ -236,15 +238,16 @@ class EPUBSpreadView: UIView, Loggable {
             log(.warning, "Invalid body for selectionDidChange: \(body)")
             return
         }
-        editingActions.selectionDidChange((
-            text: text,
-            frame: CGRect(
-                x: frame["x"] as? CGFloat ?? 0,
-                y: frame["y"] as? CGFloat ?? 0,
-                width: frame["width"] as? CGFloat ?? 0,
-                height: frame["height"] as? CGFloat ?? 0
-            )
-        ))
+        
+        let newSelection = (text: text,
+                            frame: CGRect(
+                                x: frame["x"] as? CGFloat ?? 0,
+                                y: frame["y"] as? CGFloat ?? 0,
+                                width: frame["width"] as? CGFloat ?? 0,
+                                height: frame["height"] as? CGFloat ?? 0))
+        
+        editingActions.selectionDidChange(newSelection)
+        self.delegate?.spreadView(self, selectionDidChange: newSelection)
     }
     
     /// Called when the user hit the Share item in the selection context menu.
