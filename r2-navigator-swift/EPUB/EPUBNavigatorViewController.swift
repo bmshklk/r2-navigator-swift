@@ -618,16 +618,14 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
         }
     }
     
-    public func showHighlight(_ highlight: Highlight) {
-        let components = highlight.color?.cgColor.components!;
-        let red = components?[0];
-        let green = components?[1];
-        let blue = components?[2];
+    public func showHighlight(_ highlight: Highlight, completion: ((Highlight) -> Void)?) {
         
+        let color = highlight.color ?? .green
+        let components = self.rgbComponents(of: color)
         let colorDic:NSDictionary = [
-            "red" : red,
-            "green" : green,
-            "blue"  : blue
+            "red" : components.red,
+            "green" : components.green,
+            "blue"  : components.blue
         ]
         
         guard let colorInfo:String = convJSON(colorDic) else {
@@ -643,6 +641,15 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
             
             if !highlight.style.isEmpty {
                 self.showAnnotation(highlight.id)
+            }
+            
+            if let requiredCompletion = completion {
+                                
+                requiredCompletion(
+                    Highlight(id: position["id"] as? String ?? "",
+                              locator: highlight.locator,
+                              style: "")
+                )
             }
         }
         return
@@ -741,5 +748,22 @@ extension EPUBNavigatorViewController : HighlightableNavigator {
                 )
             }
         }
+    }
+}
+
+// MARK: -
+// MARK: Private
+extension EPUBNavigatorViewController {
+    
+    func rgbComponents(of color: UIColor) -> (red: Int, green: Int, blue: Int) {
+        var components: [CGFloat] {
+            let comps = color.cgColor.components!
+            if comps.count == 4 { return comps }
+            return [comps[0], comps[0], comps[0], comps[1]]
+        }
+        let red = components[0]
+        let green = components[1]
+        let blue = components[2]
+        return (red: Int(red * 255.0), green: Int(green * 255.0), blue: Int(blue * 255.0))
     }
 }

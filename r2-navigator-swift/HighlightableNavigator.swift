@@ -18,7 +18,7 @@ public protocol HighlightableNavigator: SelectableNavigator, VisualNavigator {
     
     /// Adds a highlight to be displayed by the navigator.
     /// If a highlight with the same ID is already displayed, then it is updated.
-    func showHighlight(_ highlight: Highlight)
+    func showHighlight(_ highlight: Highlight, completion: ((Highlight) -> Void)?)
     
     /// Adds several highlights to be displayed by the navigator.
     /// If a highlight with the same ID is already displayed, then it is updated.
